@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CREATOR
+  VIEWER
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  MODEL_3D
+  AUDIO
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String?
+  role          Role           @default(CREATOR)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  experiences   Experience[]
+  assets        Asset[]
+  subscription  Subscription?
+}
+
+model Experience {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  config      Json?    // Stores AR configuration (markers, content positions, etc.)
+  isPublished Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets      Asset[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Asset {
+  id           String      @id @default(cuid())
+  name         String
+  type         AssetType
+  url          String      // S3 URL
+  mimeType     String?
+  size         Int?        // Size in bytes
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experienceId String?
+  experience   Experience? @relation(fields: [experienceId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([experienceId])
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  stripeCustomerId String   @unique
+  stripeSubscriptionId String? @unique
+  status           String   // active, past_due, canceled, etc.
+  plan             String?  // basic, pro, enterprise
+  currentPeriodEnd DateTime?
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

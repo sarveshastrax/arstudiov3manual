@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: adhvyk_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: adhvyk_ar_studio
+      MYSQL_USER: adhvyk_user
+      MYSQL_PASSWORD: adhvyk_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: adhvyk_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: "mysql://adhvyk_user:adhvyk_password@mysql:3306/adhvyk_ar_studio"
+      PORT: 5000
+      NODE_ENV: development
+    depends_on:
+      - mysql
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+volumes:
+  mysql_data:
